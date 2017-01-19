@@ -64,7 +64,6 @@
       regexp: "^port"
       line: "port 1234"
 
-
   - name: install virtualenv version(15.1.0) with pip
     pip: name=virtualenv version=15.1.0
 
