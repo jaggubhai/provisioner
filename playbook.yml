@@ -2,33 +2,15 @@
 
 - hosts: all
   become: yes
-  become_user: vagrant
+  become_method: sudo
   tasks:
-
-  - name: Install software-properties-common
-    apt: name=software-properties-common state=present
-
-  - name: setting the timezone to US EST
-    command: timedatectl set-timezone EST
-    become: true
-    become_user: root
-
-  - name: updating the timezone
-    command: ntpdate us.pool.ntp.org
-    become: true
-    become_user: root
-
-
-  # - name: Add PPA repository for ansible
-  #   apt_repository: repo='ppa:ansible/ansible'
 
   - name: update apt-get
     apt: update_cache=yes cache_valid_time=36000
 
-  - name: Install ansible
+  - name: Install required packages
     apt: name={{ item }} state=present
     with_items:
-      - ansible
       - git
       - redis-server
       - python-selinux
@@ -42,34 +24,15 @@
       path: /etc/supervisor/conf.d
       state: directory
 
-  - name: ensure supervisor log directory exists
+  - name: ensure flask app log directory exists
     file:
       path: /var/log/adsnative
       state: directory
-
-  # - name: ensure supervisor log directory exists
-  #   file:
-  #     path: /etc/supervisor/conf.d/
-  #     state: directory
-  #
-  #     mode: 0756
-  #     recurse: yes
-
 
   - name: Copy supervisor configuration for flask
     template:
       src: supervisor.flask.j2
       dest: /etc/supervisor/conf.d/flask.conf
-      # owner: root
-      # group: root
-      # become: true
-      # become_user: root
-
-  - name: reload supervisor
-    shell: supervisorctl reload
-    become: true
-    become_user: root
-
 
   - name: start the nginx service
     service: name=nginx state=started enabled=yes
@@ -80,12 +43,8 @@
       - "sites-available"
       - "sites-enabled"
 
-
   - name: Copy the nginx configuration file
     template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
-
-  - name: restart nginx
-    service: name=nginx state=restarted
 
   - name: deleting the default configuration files under /etc/nginx/sites-available:sites-enabled
     file: path=/etc/nginx/{{ item }} state=absent
@@ -93,49 +52,34 @@
         - "sites-available/default"
         - "sites-enabled/default"
 
-
   - name: Copy the nginx default configuration file
     template: src=flask.conf.j2 dest=/etc/nginx/sites-available/flask.conf
 
   - name: Create the link for site enabled specific configurations
     file: path=/etc/nginx/sites-enabled/flask.conf state=link src=/etc/nginx/sites-available/flask.conf
 
-
-
-
-
   - name: changing the redis port to 1234
-    # become: yes
-    # become_user: root
     lineinfile:
       dest: /etc/redis/redis.conf
       regexp: "^port"
       line: "port 1234"
 
-  - name: restart redis
-    service: name=redis-server state=restarted
-    become: true
-    become_user: root
 
   - name: install virtualenv version(15.1.0) with pip
-    # become: yes
-    # become_user: root
     pip: name=virtualenv version=15.1.0
 
   - name: create virtualenv directory
     file : >
-      path="~/webapps/adsnative"
+      path="/home/vagrant/webapps/adsnative"
       state="directory"
       owner="vagrant"
       group="vagrant"
       mode=0755
 
   - name: cloning the Flask App
-    # become: yes
-    # become_user: root
-    git: #repo=git@github.com:picatcha/adsnative_devops_challenge.git dest="~/webapps/adsnative" accept_hostkey=no recursive=yes force=yes
+    git:
       repo: https://github.com/picatcha/adsnative_devops_challenge.git
-      dest: "~/webapps/adsnative"
+      dest: "/home/vagrant/webapps/adsnative"
       accept_hostkey: no
       recursive: yes
       force: yes
@@ -143,12 +87,12 @@
   - name: Copy requirements.txt file
     template:
       src: requirements.txt
-      dest: "~/webapps/requirements.txt"
+      dest: "/home/vagrant/webapps/requirements.txt"
       owner: vagrant
       group: vagrant
 
   - name: installed specified python packages in virtualenv
-    pip: requirements="~/webapps/requirements.txt" virtualenv="~/webapps/adsnative"
+    pip: requirements="/home/vagrant/webapps/requirements.txt" virtualenv="/home/vagrant/webapps/adsnative"
 
   - name: create logrotate directory
     file : >
@@ -163,29 +107,19 @@
 
   - name: create hourly rotate log file under /etc/cron.hourly
     template: src=logrotatehourly.conf.j2 dest=/etc/cron.hourly/logrotate
-    become: true
-    become_user: root
 
-  - name: reload supervisor
-    shell: supervisorctl reload
-    become: true
-    become_user: root
+  - name: restart redis
+    service: name=redis-server state=restarted
 
-  # - name: create logrotate cron.hourly directory
-  #   file : >
-  #     path="/etc/cron.hourly/logrotate"
-  #     state="file"
-  #     owner="root"
-  #     group="root"
-  #     mode=0755
+  - name: restart nginx
+    service: name=nginx state=restarted
 
-  # - name: copy cron.daily to cron.hourly
-  #   copy: src=/etc/cron.daily/logrotate dest=/etc/cron.hourly/logrotate
-  #
-  # - name: changing the logrotate in cron.daily to cron.hourly
-  #   become: yes
-  #   become_user: root
-  #   lineinfile:
-  #     dest: /etc/cron.hourly/logrotate
-  #     regexp: "^/usr/sbin/logrotate"
-  #     line: "/usr/sbin/logrotate /etc/logrotate.d/adsnative"
+  - name: restart supervisor
+    service: name=supervisor state=restarted
+
+  - name: setting the timezone to US EST
+    command: timedatectl set-timezone EST
+
+  - name: updating the timezone
+    command: ntpdate us.pool.ntp.org
+  

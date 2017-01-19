@@ -1,9 +1,0 @@
----
-- name: restart redis
-  service: name=redis-server state=restarted
-
-- name: restart nginx
-  service: name=nginx state=restarted
-
-- name: reload supervisor
-  shell: supervisorctl reload
