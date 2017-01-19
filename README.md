@@ -9,3 +9,9 @@
   4. Now clone the repository under test, Vagrantfile and Provisioning directory should be under test directory.
   5. Execute $vagrant up
   6. In the browser hit http://192.168.33.15:80
+
+  To check in the messages in redis
+
+  1. Execute $redis-cli -p 1234
+  2. now at redis prompt which is running on port execute $keys *
+  3. To see the message in each key execute $GET key
