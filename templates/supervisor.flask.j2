@@ -1,0 +1,8 @@
+[program:flask-web]
+command=/home/vagrant/webapps/adsnative/bin/python /home/vagrant/webapps/adsnative/app.py runserver
+user=vagrant
+group=vagrant
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/adsnative/app.log
