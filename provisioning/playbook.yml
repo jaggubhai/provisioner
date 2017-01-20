@@ -19,6 +19,16 @@
       - logrotate
       - python-pip
 
+  - name: Create user deployer.
+    user: >
+      name="deployer"
+      home="/home/deployer"
+      createhome=yes
+      move_home=yes
+      comment="deployer user"
+      shell="/bin/bash"
+      state="present"
+
   - name: ensure supervisor conf.d directory exists
     file:
       path: /etc/supervisor/conf.d
@@ -69,16 +79,16 @@
 
   - name: create virtualenv directory
     file : >
-      path="/home/vagrant/webapps/adsnative"
+      path="/webapps/adsnative"
       state="directory"
-      owner="vagrant"
-      group="vagrant"
+      owner="deployer"
+      group="deployer"
       mode=0755
 
   - name: cloning the Flask App
     git:
       repo: https://github.com/picatcha/adsnative_devops_challenge.git
-      dest: "/home/vagrant/webapps/adsnative"
+      dest: "/webapps/adsnative"
       accept_hostkey: no
       recursive: yes
       force: yes
@@ -86,12 +96,12 @@
   - name: Copy requirements.txt file
     template:
       src: requirements.txt
-      dest: "/home/vagrant/webapps/requirements.txt"
-      owner: vagrant
-      group: vagrant
+      dest: "/webapps/requirements.txt"
+      owner: deployer
+      group: deployer
 
   - name: installed specified python packages in virtualenv
-    pip: requirements="/home/vagrant/webapps/requirements.txt" virtualenv="/home/vagrant/webapps/adsnative"
+    pip: requirements="/webapps/requirements.txt" virtualenv="/webapps/adsnative"
 
   - name: create logrotate directory
     file : >
@@ -121,4 +131,3 @@
 
   - name: updating the timezone
     command: ntpdate us.pool.ntp.org
-  
